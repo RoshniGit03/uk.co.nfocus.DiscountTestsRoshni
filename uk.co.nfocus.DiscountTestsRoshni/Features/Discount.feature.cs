@@ -76,14 +76,16 @@ namespace uk.co.nfocus.DiscountTestsRoshni.Features
         
         [NUnit.Framework.TestAttribute()]
         [NUnit.Framework.DescriptionAttribute("Apply 15% discount coupon and verify totals")]
-        [NUnit.Framework.TestCaseAttribute("email@address.com", "strong!password", "Polo", null)]
-        public void Apply15DiscountCouponAndVerifyTotals(string username, string password, string item, string[] exampleTags)
+        [NUnit.Framework.TestCaseAttribute("email@address.com", "strong!password", "Polo", "edgewords", "15%", null)]
+        public void Apply15DiscountCouponAndVerifyTotals(string username, string password, string item, string coupon, string discount, string[] exampleTags)
         {
             string[] tagsOfScenario = exampleTags;
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             argumentsOfScenario.Add("username", username);
             argumentsOfScenario.Add("password", password);
             argumentsOfScenario.Add("item", item);
+            argumentsOfScenario.Add("coupon", coupon);
+            argumentsOfScenario.Add("discount", discount);
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Apply 15% discount coupon and verify totals", null, tagsOfScenario, argumentsOfScenario, featureTags);
 #line 6
   this.ScenarioInitialize(scenarioInfo);
@@ -99,15 +101,18 @@ namespace uk.co.nfocus.DiscountTestsRoshni.Features
     testRunner.Given(string.Format("I am logged into the store as \"{0}\" and \"{1}\"", username, password), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line hidden
 #line 8
-    testRunner.When(string.Format("I add a \"{0}\" to the cart", item), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+    testRunner.And("the cart is empty", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 9
-    testRunner.And("I apply the coupon \"edgewords\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+    testRunner.When(string.Format("I add a \"{0}\" to the cart", item), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
 #line 10
-    testRunner.Then("the discount should be 15% of the subtotal", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+    testRunner.And(string.Format("I apply a \"{0}\"", coupon), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 11
+    testRunner.Then(string.Format("the discount should be {0} of the subtotal", discount), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+#line hidden
+#line 12
     testRunner.And("the total should be calculated correctly", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
             }

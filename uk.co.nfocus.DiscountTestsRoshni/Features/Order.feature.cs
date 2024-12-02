@@ -76,14 +76,21 @@ namespace uk.co.nfocus.DiscountTestsRoshni.Features
         
         [NUnit.Framework.TestAttribute()]
         [NUnit.Framework.DescriptionAttribute("Verify order number after placing an order")]
-        [NUnit.Framework.TestCaseAttribute("email@address.com", "strong!password", "Polo", null)]
-        public void VerifyOrderNumberAfterPlacingAnOrder(string username, string password, string item, string[] exampleTags)
+        [NUnit.Framework.TestCaseAttribute("email@address.com", "strong!password", "Polo", "John", "Doe", "123 Street", "London", "SW1A 1AA", "07123456789", "Check payments", null)]
+        public void VerifyOrderNumberAfterPlacingAnOrder(string username, string password, string item, string firstName, string lastName, string address, string city, string postcode, string phoneNumber, string paymentMethod, string[] exampleTags)
         {
             string[] tagsOfScenario = exampleTags;
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             argumentsOfScenario.Add("username", username);
             argumentsOfScenario.Add("password", password);
             argumentsOfScenario.Add("item", item);
+            argumentsOfScenario.Add("firstName", firstName);
+            argumentsOfScenario.Add("lastName", lastName);
+            argumentsOfScenario.Add("address", address);
+            argumentsOfScenario.Add("city", city);
+            argumentsOfScenario.Add("postcode", postcode);
+            argumentsOfScenario.Add("phoneNumber", phoneNumber);
+            argumentsOfScenario.Add("paymentMethod", paymentMethod);
             TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Verify order number after placing an order", null, tagsOfScenario, argumentsOfScenario, featureTags);
 #line 6
   this.ScenarioInitialize(scenarioInfo);
@@ -99,15 +106,18 @@ namespace uk.co.nfocus.DiscountTestsRoshni.Features
     testRunner.Given(string.Format("I am logged into the store as \"{0}\" and \"{1}\"", username, password), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line hidden
 #line 8
-    testRunner.When(string.Format("I add a \"{0}\" to the cart", item), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+    testRunner.And("the cart is empty", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 9
-    testRunner.And("I checkout with valid billing details", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+    testRunner.When(string.Format("I add a \"{0}\" to the cart", item), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
 #line 10
-    testRunner.And("I select \"Check payments\" then place order", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+    testRunner.And(string.Format("I checkout with the details of \"{0}\" \"{1}\" \"{2}\" \"{3}\" \"{4}\" \"{5}\"", firstName, lastName, address, city, postcode, phoneNumber), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 11
+    testRunner.And(string.Format("I select \"{0}\" then place order", paymentMethod), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 12
     testRunner.Then("the order number should appear in my order history", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
             }

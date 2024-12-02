@@ -3,73 +3,99 @@ using OpenQA.Selenium.Support.UI;
 
 namespace uk.co.nfocus.DiscountTestsRoshni.Pages
 {
-    //POM class for Checkout Page interactions
+    // POM class for Checkout Page interactions
     public class CheckoutPage
     {
-        //WebDriver instance for interacting with browser elements
         private readonly IWebDriver _driver;
-
-        //WebDriverWait instance for handling dynamic waits
         private readonly WebDriverWait _wait;
 
-        //Constructor to initialize WebDriver and WebDriverWait
+        //Constructor to initialise WebDriver and WebDriverWait
         public CheckoutPage(IWebDriver driver)
         {
-            _driver = driver;//Assign the passed-in WebDriver to the class field
-            _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10)); //Set a default timeout for element waits
+            _driver = driver;  // Assign the passed-in WebDriver to the class field
+            _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));  // Set a default timeout for element waits
         }
 
-        //method to fill in billing details required for checkout
+        // Locators
+        private IWebElement BillingFirstName => _driver.FindElement(By.Id("billing_first_name"));
+        private IWebElement BillingLastName => _driver.FindElement(By.Id("billing_last_name"));
+        private IWebElement BillingAddress => _driver.FindElement(By.Id("billing_address_1"));
+        private IWebElement BillingCity => _driver.FindElement(By.Id("billing_city"));
+        private IWebElement BillingPostcode => _driver.FindElement(By.Id("billing_postcode"));
+        private IWebElement BillingPhone => _driver.FindElement(By.Id("billing_phone"));
+        private IWebElement PlaceOrderButton => _driver.FindElement(By.Id("place_order"));
+        private IWebElement OrderHistoryLink => _driver.FindElement(By.LinkText("View your order history"));
+
+        // Method to complete billing details
         public void CompleteBillingDetails(string firstName, string lastName, string address, string city, string postcode, string phoneNumber)
         {
-            _driver.FindElement(By.Id("billing_first_name")).Clear();
-            _driver.FindElement(By.Id("billing_first_name")).SendKeys(firstName);
+            BillingFirstName.Clear();
+            BillingFirstName.SendKeys(firstName);
 
-            _driver.FindElement(By.Id("billing_last_name")).Clear();
-            _driver.FindElement(By.Id("billing_last_name")).SendKeys(lastName);
+            BillingLastName.Clear();
+            BillingLastName.SendKeys(lastName);
 
-            _driver.FindElement(By.Id("billing_address_1")).Clear();
-            _driver.FindElement(By.Id("billing_address_1")).SendKeys(address);
+            BillingAddress.Clear();
+            BillingAddress.SendKeys(address);
 
-            _driver.FindElement(By.Id("billing_city")).Clear();
-            _driver.FindElement(By.Id("billing_city")).SendKeys(city);
+            BillingCity.Clear();
+            BillingCity.SendKeys(city);
 
-            _driver.FindElement(By.Id("billing_postcode")).Clear();
-            _driver.FindElement(By.Id("billing_postcode")).SendKeys(postcode);
+            BillingPostcode.Clear();
+            BillingPostcode.SendKeys(postcode);
 
-            _driver.FindElement(By.Id("billing_phone")).Clear();
-            _driver.FindElement(By.Id("billing_phone")).SendKeys(phoneNumber);
+            BillingPhone.Clear();
+            BillingPhone.SendKeys(phoneNumber);
+
             Console.WriteLine($"\tBilling to {firstName} {lastName} at {address}, {city}, {postcode}. Contact: {phoneNumber}");
-
         }
 
-        //Method to select a payment method
+        // Method to select a payment method
         public void SelectPaymentMethod(string paymentMethod)
         {
-            //Wait for any overlay to disappear to ensure page is fully interactable
-            _wait.Until(driver =>
-                !driver.FindElements(By.CssSelector(".blockUI.blockOverlay"))
-                       .Any(overlay => overlay.Displayed));
+            // Wait for any overlay to disappear to ensure page is fully interactable
+            WaitForElementToDisappear(By.CssSelector(".blockUI.blockOverlay"));
 
-            //Locate  payment method by its label and ensure it is visible and interactable
+            // Wait for the payment option to be visible and interactable
             var paymentOption = _wait.Until(driver =>
                 driver.FindElement(By.XPath($"//label[contains(text(), '{paymentMethod}')]")));
 
-            //Click selected payment option
+            // Click the selected payment option
             paymentOption.Click();
 
             // Log
             Console.WriteLine($"{paymentMethod} selected");
         }
 
-        //Method to place an order
+        // Method to place the order
         public void PlaceOrder()
         {
-            //Locate and click "Place Order" button
-            _driver.FindElement(By.Id("place_order")).Click();
+            PlaceOrderButton.Click(); // Locate and click "Place Order" button
 
-            //Log
+            // Log
             Console.WriteLine($"\tOrder placed successfully");
+        }
+
+        // Wait Helper Method to ensure an element is not present (e.g., overlay disappears)
+        private void WaitForElementToDisappear(By locator)
+        {
+            _wait.Until(driver =>
+                !driver.FindElements(locator).Any(element => element.Displayed));
+        }
+
+        // Method to navigate to order history and check for the order
+        public bool VerifyOrderInHistory()
+        {
+            OrderHistoryLink.Click();  // Navigate to order history page
+            Console.WriteLine("\tNavigating to order history page");
+
+            // Add logic to verify if the order number is displayed in the history
+            // This depends on how the order number is displayed on the page
+            var orderNumber = _driver.FindElement(By.CssSelector(".order-number")).Text;
+            Console.WriteLine($"\tFound order number: {orderNumber}");
+
+            // Return true if order number is found, else false
+            return !string.IsNullOrEmpty(orderNumber);
         }
     }
 }

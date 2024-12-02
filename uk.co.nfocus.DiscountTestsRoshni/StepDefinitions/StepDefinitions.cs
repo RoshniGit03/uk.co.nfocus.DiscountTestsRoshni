@@ -1,10 +1,7 @@
 ﻿using NUnit.Framework;
 using OpenQA.Selenium;
-using TechTalk.SpecFlow;
 using uk.co.nfocus.DiscountTestsRoshni.Pages;
-using System;
 using uk.co.nfocus.DiscountTestsRoshni.Support;
-using OpenQA.Selenium.DevTools.V128.Audits;
 
 namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
 {
@@ -13,12 +10,14 @@ namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
     {
         //Declare fields for all page objects and necessary data
         private readonly IWebDriver _driver;  //WebDriver instance for controlling the browser
-        private readonly LoginPage _loginPage;  //Page object for login page
-        private readonly ShopPage _shopPage; 
-        private readonly CartPage _cartPage;
-        private readonly CheckoutPage _checkoutPage;
-        private readonly OrdersPage _ordersPage;
-        private readonly AccountPage _accountPage;
+        private LoginPage _loginPage;  //Page object for login page
+        private ShopPage _shopPage;
+        private CartPage _cartPage;
+        private CheckoutPage _checkoutPage;
+        private OrderReceivedPage _orderReceivedPage;
+        private OrdersPage _ordersPage;
+        private AccountPage _accountPage;
+        private Helper _helper;
         private decimal _subtotal, _discount, _shipping, _total;  //Variables to hold cart totals and order calculations
 
         //Constructor with dependency injection via ScenarioContext
@@ -29,14 +28,6 @@ namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
         {
             //Retrieve the WebDriver from ScenarioContext
             _driver = (IWebDriver)ScenarioContext.Current["WebDriver"];
-
-            // Initialize the page objects with the WebDriver
-            _loginPage = new LoginPage(_driver);
-            _shopPage = new ShopPage(_driver);
-            _cartPage = new CartPage(_driver);
-            _checkoutPage = new CheckoutPage(_driver);
-            _ordersPage = new OrdersPage(_driver);
-            _accountPage = new AccountPage(_driver);
         }
 
         //Step definition for logging into the store
@@ -45,10 +36,21 @@ namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
         {
             Console.WriteLine($"Attempting to log in with email: {email}, password: {password}");
 
+            // Initialise LoginPage only when logging in
+            _loginPage = new LoginPage(_driver);
+
             //Call Login method on LoginPage to perform login with provided credentials
             _loginPage.Login(email, password);
+        }
 
-            //Ensure the cart is empty before starting the test to maintain a clean state
+        //Step definition for ensuring the cart is empty
+        [Given(@"the cart is empty")]
+        public void ClearCart()
+        {
+            //Initialise CartPage only when interacting with the cart
+            _cartPage = new CartPage(_driver);
+
+            // Navigate to the Cart page and ensure it's empty
             _cartPage.EnsureCartIsEmpty();
         }
 
@@ -56,37 +58,58 @@ namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
         [When(@"I add a ""(.*)"" to the cart")]
         public void AddToCart(string itemName)
         {
+            //Initialise Helper and ShopPage only when navigating to and interacting with the shop page
+            _helper = new Helper(_driver);
+            _shopPage = new ShopPage(_driver);
+
             //Navigate to the shop page and add the specified item to the cart
-            _shopPage.GoToShopPage();
+            _helper.NavigateToShopPage();
             _shopPage.AddItemToCart(itemName);
         }
 
         //Step definition for applying a coupon to the cart
-        [When(@"I apply the coupon ""(.*)""")]
+        [When(@"I apply a ""(.*)""")]
         public void ApplyCoupon(string couponCode)
         {
+            //Initialise CartPage only when interacting with the cart
+            _cartPage = new CartPage(_driver);
+
             _cartPage.GoToCartPage(); //Navigate to the cart page 
             _cartPage.ApplyCoupon(couponCode); //Apply specified coupon code
         }
 
         //Step definition to validate the applied discount
-        [Then(@"the discount should be 15% of the subtotal")]
-        public void DiscountValidation()
+        [Then(@"the discount should be (.*)% of the subtotal")]
+        public void DiscountValidation(decimal expectedPercentage)
         {
-            //Get current cart totals
+            //Initialise CartPage only when retrieving cart totals
+            _cartPage = new CartPage(_driver);
+
+            // Get current cart totals
             (_subtotal, _discount, _shipping, _total) = _cartPage.GetCartTotals();
 
-            //Calculate expected discount as 15% of subtotal
-            decimal expectedDiscount = _subtotal * 0.15m;
+            // Convert expected percentage to a decimal multiplier
+            decimal expectedMultiplier = expectedPercentage / 100;
 
-            // Log actual and expected discount in the output
-            Console.WriteLine($"[Subtotal: £{_subtotal:F2} | Expected Discount: £{expectedDiscount:F2} | Actual Discount: £{_discount:F2}]");
+            // Calculate expected discount based on the subtotal
+            decimal expectedDiscount = _subtotal * expectedMultiplier;
 
-            //Assert that actual discount is within 0.01m of expected discount (financial calculations)
-            Assert.That(_discount, Is.EqualTo(expectedDiscount).Within(0.01m), "Discount is not 15% of the subtotal.");
+            // Calculate the actual percentage discount
+            decimal actualPercentage = (_discount / _subtotal) * 100;
 
-            //Log success IF discount is correct
-            Console.WriteLine("\tThe discount is correctly applied as 15% of the subtotal.");
+            // Log the details
+            Console.WriteLine($"[Subtotal: £{_subtotal:F2} | Expected Discount: {expectedPercentage}% (£{expectedDiscount:F2}) | Actual Discount: {actualPercentage:F2}% (£{_discount:F2})]");
+
+            // Assert that the actual discount matches the expected discount within 0.01m tolerance
+            if (Math.Abs(actualPercentage - expectedPercentage) > 0.01m)
+            {
+                // Log a message indicating a mismatch
+                Console.WriteLine($"\tThe actual discount ({actualPercentage:F2}%) does not match the expected {expectedPercentage}%. Returning actual percentage.");
+                Assert.Fail($"Discount validation failed. Expected: {expectedPercentage}%, Actual: {actualPercentage:F2}%");
+            }
+
+            // Log success if the discount matches
+            Console.WriteLine("\tThe discount is correctly applied.");
         }
 
         //Step definition to validate final total calculation
@@ -107,26 +130,24 @@ namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
         }
 
         //Step definition to proceed to the checkout page
-        [When(@"I checkout with valid billing details")]
-        public void Checkout()
+        [When(@"I checkout with the details of ""(.*)"" ""(.*)"" ""(.*)"" ""(.*)"" ""(.*)"" ""(.*)""")]
+        public void CheckoutDetails(string firstName, string lastName, string address, string city, string postcode, string phoneNumber)
         {
-            //Navigate to the checkout page from the cart page
+            // Initialise CartPage and CheckoutPage when proceeding to checkout
+            _cartPage = new CartPage(_driver);
+            _checkoutPage = new CheckoutPage(_driver);
+
             _cartPage.ProceedToCheckout();
-            //Complete the billing details form with valid data
-            _checkoutPage.CompleteBillingDetails(
-                firstName: "Jane",
-                lastName: "Doe",
-                address: "123 Street",
-                city: "CityVille",
-                postcode: "TF29FT",
-                phoneNumber: "07123456789"
-            );
+            _checkoutPage.CompleteBillingDetails(firstName, lastName, address, city, postcode, phoneNumber);
         }
 
         //Step definition to select the payment method and order
         [When(@"I select ""(.*)"" then place order")]
         public void CompleteOrder(string paymentMethod)
         {
+            //Initialise CheckoutPage when interacting with payment methods
+            _checkoutPage = new CheckoutPage(_driver);
+
             //select the specified payment method
             _checkoutPage.SelectPaymentMethod(paymentMethod);
             //Place order using checkout page's PlaceOrder method
@@ -137,12 +158,20 @@ namespace uk.co.nfocus.DiscountTestsRoshni.StepDefinitions
         [Then(@"the order number should appear in my order history")]
         public void OrderValidation()
         {
-            //Extract order number from the order confirmation page
-            string orderNumber = _ordersPage.GetOrderNumber();
+            // Initialise OrderReceivedPage, AccountPage, and OrdersPage when verifying order history
+            _orderReceivedPage = new OrderReceivedPage(_driver);
+            _accountPage = new AccountPage(_driver);
+            _ordersPage = new OrdersPage(_driver);
 
-            //Navigate to orders page to verify the order number appears in order history
+            // Extract order number from the Order Received page
+            string orderNumber = _orderReceivedPage.GetOrderNumber();
+
+            // Navigate to the Orders page to verify the order number appears in the history
             _accountPage.NavigateToOrders();
-            _ordersPage.VerifyOrderExists(orderNumber);
+
+            // Perform the assertion in the step definition
+            bool orderExists = _ordersPage.DoesOrderExist(orderNumber);
+            Assert.IsTrue(orderExists, $"Order number '{orderNumber}' not found in order history.");
         }
     }
 }
